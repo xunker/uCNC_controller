@@ -10,6 +10,7 @@ from Tkinter import *
 import serial
 import time
 import os
+import platform
 import tkMessageBox
 import Tkinter
 from tkFileDialog import askopenfilename
@@ -23,7 +24,7 @@ Z_jog= 0.1
 # get a serial instance and open it later
 ser = serial.Serial()
 ser.baudrate = 9600
-ser.port = "COM6"
+ser.port = "/dev/tty.usbmodem14723121"
 ser.timeout = 1
 
 class GUIFramework(Frame):
@@ -40,13 +41,13 @@ class GUIFramework(Frame):
 
     def __init__(self,master=None):
         """Initialize yourself"""
-        
+
         """Initialise the base class"""
         Frame.__init__(self,master)
-        
+
         """Set Window Title"""
         self.master.title("Arduino G Code Driver")
-        
+
         """Display the main window with a little bit of padding"""
         self.grid(padx=10,pady=10, sticky=E+N)
         self.CreateWidgets()
@@ -73,7 +74,7 @@ class GUIFramework(Frame):
                 counter += 1
                 if counter == 10:
                     return
-            if 'start' or 'ready' in reply:          
+            if 'start' or 'ready' in reply:
                 self.printJogLine('Connection to Arduino established\n')
                 self.serialClosed = False
                 if self.unit == 'inch':
@@ -95,7 +96,7 @@ class GUIFramework(Frame):
 # print the line
         ser.write(sline)
 # send the line on the serial port
-        
+
     def writeline(self, wline):
 # prepare one line to send to the arduino - pass it to the sendline function
 # then read what come back from the arduino
@@ -146,8 +147,8 @@ class GUIFramework(Frame):
         self.feedback.insert(1.0, jogLine)
         self.update_idletasks()
 
-        
-#**********************************************************************************        
+
+#**********************************************************************************
 # Deal with the buttons
 #**********************************************************************************
 
@@ -162,7 +163,10 @@ class GUIFramework(Frame):
 
 # open file button command
     def getFileName(self):
-        self.filename = askopenfilename(filetypes=[("allfiles","*")])
+        if platform.system() == 'Darwin': # Mac OS X, don't use filetypes
+            self.filename = askopenfilename()
+        else:
+            self.filename = askopenfilename(filetypes=[("allfiles","*.*")])
 ##        print self.filename
         self.fileBox.delete(1.0,'end')
         self.fileBox.insert('end', open(self.filename,'r').read())
@@ -185,13 +189,13 @@ class GUIFramework(Frame):
         self.unit = 'inch'
         unitLine = 'G20 \n'
         self.writeline(unitLine)
-        
+
 #####################################################################
 
 ######################### connectSerial #############################
     def conSerial(self):
         self.connectSerial()
-        
+
 ######################################################################
 #  Still can't get the jog buttons to work in a consistent manner
 #  kind of frustrating but.....
@@ -246,7 +250,7 @@ class GUIFramework(Frame):
         self.Y += float(self.yEntry.get())
         jog_line = 'G1 X' + str(self.X) + ' Y' + str(self.Y) + ' \n'
         self.writeline(jog_line)
-        
+
 # X+ Y- button command
     def run_jogXYpn(self):
         self.X += float(self.xEntry.get())
@@ -268,7 +272,7 @@ class GUIFramework(Frame):
         self.Z = 0.0
         jog_line = 'G92 \n'
         self.writeline(jog_line)
-        
+
 ########### Go Home #################
     def setHome(self):
         self.X = 0.0
@@ -294,7 +298,7 @@ class GUIFramework(Frame):
         sys.exit()
 # ********************************************************************************
 # Create the GUI
-# ********************************************************************************     
+# ********************************************************************************
     def CreateWidgets(self):
 
 # create a text box to display file
@@ -321,9 +325,9 @@ class GUIFramework(Frame):
 
 # Flush serial port
         self.connser = Button(self, text = "Connect Serial",bg = "white", fg = "blue", command=self.conSerial )
-        self.connser.grid(row=1, column=5 )     
-        
-# X jog button        
+        self.connser.grid(row=1, column=5 )
+
+# X jog button
         self.jogXneg = Button(self, text = ' X-' , bg = 'orange', repeatdelay = 500, repeatinterval = 20, command=self.run_jogXneg )
         self.jogXneg.grid(row=3, column=0)
         self.jogXpos = Button(self, text = ' X+ ', bg = 'orange', repeatdelay = 500, repeatinterval = 20, command=self.run_jogXpos )
@@ -335,9 +339,9 @@ class GUIFramework(Frame):
 
 # X- Y+ jog button
         self.jogXYnp = Button(self, text = 'X-Y+', bg = 'cyan', repeatdelay = 500, repeatinterval = 20, command=self.run_jogXYnp)
-        self.jogXYnp.grid(row=2, column=3)       
+        self.jogXYnp.grid(row=2, column=3)
 
-# Y jog button        
+# Y jog button
         self.jogYneg = Button(self, text = ' Y- ', bg = 'orange', repeatdelay = 500, repeatinterval = 20, command=self.run_jogYneg)
         self.jogYneg.grid(row=2, column=1)
         self.jogYpos = Button(self, text = ' Y+ ', bg = 'orange', repeatdelay = 500, repeatinterval = 20, command=self.run_jogYpos)
@@ -350,12 +354,12 @@ class GUIFramework(Frame):
 # X+ Y+ jog button
         self.jogXYpp = Button(self, text = 'X+Y+', bg = 'cyan', repeatdelay = 500, repeatinterval = 20, command=self.run_jogXYpp)
         self.jogXYpp.grid(row=4, column=3)
-        
+
 # Z jog button
         self.jogZpos = Button(self, text = 'Z+', bg ='red', command=self.run_jogZpos )
         self.jogZpos.grid(row=2, column=5)
         self.jogZneg = Button(self, text = 'Z-', bg = 'red', command=self.run_jogZneg )
-        self.jogZneg.grid(row=4, column=5)       
+        self.jogZneg.grid(row=4, column=5)
 
 # create entry for jog distance
 # X jog distance
@@ -364,14 +368,14 @@ class GUIFramework(Frame):
         self.xEntry = Entry(self)
         self.xEntry.insert(0, X_jog)
         self.xEntry.grid ( row=2, column = 7)
-# Y jog distance       
+# Y jog distance
         self.yLabel = Label(self, text = '  Y Jog Distance')
         self.yLabel.grid(row= 3, column=6)
         self.yEntry = Entry(self)
         self.yEntry.insert(1, Y_jog)
         self.yEntry.grid ( row=3, column = 7)
-        
-# Z jog distance       
+
+# Z jog distance
         self.zLabel = Label(self, text = '  Z Jog Distance')
         self.zLabel.grid(row= 4, column=6)
         self.zEntry = Entry(self)
@@ -391,7 +395,7 @@ class GUIFramework(Frame):
         self.progQuit = Button(self, text = "QUIT", bg = 'orange', command=self.qTime )
         self.progQuit.grid (row = 5, column = 8)
 ##############################################################
-                
+
 if __name__ == "__main__":
     guiFrame = GUIFramework()
     guiFrame.mainloop()
